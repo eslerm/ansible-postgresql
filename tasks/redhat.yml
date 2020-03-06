@@ -42,9 +42,18 @@
 #  # here but alas there is no `startswith` test
 #  loop: "{{ __postgresql_yum_repolist_result.results }}"
 
-- name: Install PostgreSQL (RedHat)
+- name: Install PostgreSQL (RedHat <= 7)
   yum:
     name: postgresql{{ __postgresql_version_dotless }}-server
+  when: >-
+    ansible_distribution_major_version is version(7, '<=')
+
+- name: Install PostgreSQL (RedHat 8)
+  dnf:
+    name: "@postgresql:{{ __postgresql_version_dotless }}"
+    state: present
+  when: >-
+    ansible_distribution_major_version is version(8, '=')
 
 - name: Check for pgdata directory
   stat:
@@ -60,10 +69,17 @@
     ansible_distribution_major_version is version(7, '<')
       and (pgdata_stat.stat.isdir is not defined or not pgdata_stat.stat.isdir)
 
-- name: Initialize database (RedHat >= 7)
+- name: Initialize database (RedHat = 7)
   command: >-
     /usr/pgsql-{{ postgresql_version }}/bin/postgresql{{ __postgresql_command_sep }}{{
       __postgresql_version_dotless }}-setup initdb
   when: >-
-    ansible_distribution_major_version is version(7, '>=')
+    ansible_distribution_major_version is version(7, '=')
+      and (pgdata_stat.stat.isdir is not defined or not pgdata_stat.stat.isdir)
+
+- name: Initialize database (RedHat >= 8)
+  command: >-
+    /urs/bin/postgresql-setup initdb
+  when: >-
+    ansible_distribution_major_version is version(8, '>=')
       and (pgdata_stat.stat.isdir is not defined or not pgdata_stat.stat.isdir)
